@@ -4,7 +4,10 @@
 
 -module (unit).
 
--export ( [run/0,run1/0] ).
+-export ([
+		start/1,
+		run/1
+	]).
 
 
 fire([])->
@@ -38,5 +41,17 @@ run(Inputs,Outputs,Level) ->
 run1() ->
 	run(maps:new(),[],0).
 
-run() ->
-	spawn(unit,run1,[]).	
+run(Id) ->
+	receive 
+		hello ->
+			io:format("Hello~n",[])
+	end,
+	run(Id).	
+
+
+
+
+start(Id) -> 
+	io:format('Unit spawn: ~p~n',[Id]),
+	spawn(?MODULE,run,[Id]).
+
