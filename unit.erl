@@ -44,18 +44,14 @@ run1() ->
 
 
 
-
 run(Id) ->
-	receive 
-		hello ->
-			io:format("Hello~n",[])
-	end,
-	run(Id).	
+    receive	    
+	hello ->
+	    io:format("Hello~n",[]);
+	conn ->
+	    io:format("Connection~n",[])
+    end,
+    run(Id).	
 
-
-
-
-start(Id) -> 
-	io:format('Unit spawn: ~p~n',[Id]),
-	spawn(?MODULE,run,[Id]).
-
+start(Id) ->
+    spawn(?MODULE,run,[Id]).
