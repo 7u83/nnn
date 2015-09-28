@@ -5,9 +5,10 @@
 -module (unit).
 
 -export ([
-		start/1,
-		run/1
-	]).
+	  start/1,
+	  run/1,
+	  input_function/1
+	 ]).
 
 fire([])->
 	ok.
@@ -45,6 +46,13 @@ run1() ->
 hebb (I,O) ->
     ?RATE * I * O.
 
+
+input_function([])->
+    0.0;
+input_function([H|T]) ->
+    {Input,Weight}=H,
+    Input * Weight + input_function(T).
+
 run(Id,Inputs,Outputs,Output)->
     receive
 	hello ->
@@ -53,14 +61,26 @@ run(Id,Inputs,Outputs,Output)->
 	    io:format("Connection~n",[]);
 	{hebb,I,O} ->
 	    H = hebb(I,O),
-	    io:format("Hebb: ~p~n",[H])
-    end,
-    run(Id).
+	    io:format("Hebb: ~p~n",[H]);
+	show_inputs ->
+	    io:format("Inputs: ~p~n",[Inputs]);
+	{set_input,N,Val} ->
+	    io:format("Set Input ~p ~p ~n",[N,Val]),
+	    NewInputs=maps:put(N,Val,Inputs),
+	    run(Id,NewInputs,Outputs,Output);
+	ifunc ->
+	    Values = maps:values(Inputs),
+	    io:format("Values ~p~n",[Values]),
+	    R = input_function(Values),
+	    io:format("IFUNC: ~p~n",[R])
+
+        end,
+    io:format("Run again~n",[]),
+    run(Id,Inputs,Outputs,Output).
 
 run(Id) ->
-    run(Id,[],[],0.0).
-
-
+    Inputs = maps:new(),
+    run(Id,Inputs,[],0.0).
 
 start(Id) ->
     spawn(?MODULE,run,[Id]).
