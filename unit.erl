@@ -50,7 +50,7 @@ hebb (I,O) ->
 input_function([])->
     0.0;
 input_function([H|T]) ->
-    {Input,Weight}=H,
+    {Weight,Input}=H,
     Input * Weight + input_function(T).
 
 run(Id,Inputs,Outputs,Output)->
@@ -64,8 +64,15 @@ run(Id,Inputs,Outputs,Output)->
 	    io:format("Hebb: ~p~n",[H]);
 	show_inputs ->
 	    io:format("Inputs: ~p~n",[Inputs]);
+
+	{set,N,Val} ->
+	    {W,OldVal} = maps:get(N,Inputs,{0,0}),
+	    NewInputs = maps:put(N,{W,Val},Inputs),
+	    run(Id,NewInputs,Outputs,Output);
 	{set_input,N,Val} ->
 	    io:format("Set Input ~p ~p ~n",[N,Val]),
+ 
+
 	    NewInputs=maps:put(N,Val,Inputs),
 	    run(Id,NewInputs,Outputs,Output);
 	ifunc ->
