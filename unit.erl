@@ -7,15 +7,17 @@
 -export ([
 	  start/1,
 	  run/1,
-	  input_function/1,
-	  output_function/1
+	  in_func/1,
+	  out_func/1
 	 ]).
 
--record (ufields,
+-record (uf,
 	 {
 	   id,
 	   inputs,
-	   outputs
+	   outputs,
+	   weights,
+	   level=0.0
 	 }
 	).
 
@@ -25,7 +27,6 @@ fire([],Level)->
 fire([H|Tail],Level) ->
 	H ! Level,	
 	fire(Tail,Level).
-
 
 add_output(Output,Outputs,true) ->
     Outputs;
@@ -52,24 +53,17 @@ run1() ->
 
 -define (RATE,0.7).
 
-hebb (I,O) ->
-    ?RATE * I * O.
 
-
-
-
-input_function(Map) when is_map(Map) ->
-    Values = maps:values(Map),
-     input_function(Values);
-input_function([])->
+in_func(Map) when is_map(Map) ->
+    in_func(maps:values(Map));
+in_func([])->
     0.0;
-input_function([H|T]) ->
-    {Weight,Input}=H,
-    Input * Weight + input_function(T).
+in_func([H|T]) ->
+    {Weight,Value}=H,
+    Value * Weight + in_func(T).
 
 
-
-output_function(I)->
+out_func(I)->
     if 
 	I<0.5 ->
 	    0;
@@ -92,52 +86,90 @@ set_input(N,Inputs,Value) ->
     set_input(N,Inputs,{W,Value}).
 
 
+adjust(Inputs)->
+    ok.
 
-run(Id,Inputs,Outputs,Output) when is_map(Inputs)->
-    receive
-	hello ->
-	    io:format("Hello~n",[]);
-	conn ->
-	    io:format("Connection~n",[]);
-	{hebb,I,O} ->
-	    H = hebb(I,O),
-	    io:format("Hebb: ~p~n",[H]);
-	show_inputs ->
-	    io:format("Inputs: ~p~n",[Inputs]);
+adjust(R,OutVal) when is_record(R,uf)->
+    R.
 
-	{set,N,Val} ->
- 	    {W,OldVal} = maps:get(N,Inputs,{0,0}),
-	    NewInputs = maps:put(N,{W,Val},Inputs),
-	    run(Id,NewInputs,Outputs,Output);
-	{set_input,N,Val} ->
-	    NewInputs= set_input(N,Inputs,Val),
-	    I = input_function(NewInputs),
-	    O = output_function(I),
-	    fire (Outputs,O),
+get_weight(R,Input) ->
+    maps:get(Input,R#uf.weights,rand:uniform()).
 
-	    io:format("Inputs result fire ~p, in, ~p ~p~n",[O,I,NewInputs]),
-	    
-	    run(Id,NewInputs,Outputs,Output);
+
+send_to(R,Output,Value) ->
+    Output ! {stim,R#uf.id,Value}.
+
+send(_Source,[]) ->
+    ok;
+send(Source,[Output|Tail]) ->
+    send_to(Source,Output,1),
+    send(Source,Tail).
 
 
 
-	ifunc ->
-	    Values = maps:values(Inputs),
-	    io:format("Values ~p~n",[Values]),
-	    R = input_function(Values),
-	    io:format("IFUNC: ~p~n",[R]);
-	do ->
-	    I = input_function(Inputs)
+
+fire(R) ->
+    io:format("Firing~n"),
+    send(R#uf.id,R#uf.outputs),
+    R#uf{
+      level=0.0
+      }.
+
+stim(R,Input,Value) ->
+    Level = R#uf.level+get_weight(R,Input)*Value,
+    if 
+	Level < 0.5 ->
+	    R#uf{
+	      level = Level
+	     };
+	true ->
+	    fire(R)
+    end.
 		
-	    
 
-        end,
-    io:format("Run again~n",[]),
-    run(Id,Inputs,Outputs,Output).
+    
+%    R1=R#uf{
+%	   inputs = set_input(Input,R#uf.inputs,Value)
+%	  },
+%    InVal = in_func(R1#uf.inputs),
+%    OutVal = out_func(InVal),
+   
+%    io:format("Inval,OutVal: ~p,~p~n",[InVal,OutVal]),
 
-run(Id) ->
-    Inputs = maps:new(),
-    run(Id,Inputs,[],0.0).
+%   R1.
+    
+    
+    
 
-start(Id) ->
+
+run(R) when is_record(R,uf) ->
+    io:format("Current level: ~p",[R#uf.level]),
+    receive
+	status ->
+	    % Print unit status
+	    io:format("--- Status for unit ~p ---~n",[R#uf.id]),
+	    io:format("Inputs: ~p~n",[R#uf.inputs]),
+	    io:format("Outputs: ~p~n",[R#uf.outputs]),
+	    run(R);
+	hello ->
+	    io:format("Hello World~n"),
+	    run(R);
+	{stim,Input,Value} ->
+	    io:format("Stim detected~n"),
+	    run(stim(R,Input,Value))
+    end;
+run(Id) when is_integer(Id) ->
+    Record = #uf{
+		id = Id, 
+		inputs=maps:new(),
+		weights = maps:new(),
+		outputs=[]
+	       },
+    io:format("Starting unit ~p~n",[Record#uf.id]),
+    run(Record).
+
+
+
+
+start(Id) when is_integer(Id) ->
     spawn(?MODULE,run,[Id]).

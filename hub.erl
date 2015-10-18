@@ -1,4 +1,3 @@
-
 %
 % hub.erl
 %
@@ -25,7 +24,7 @@ start_units(N,G) ->
 run() ->
     G=ets:new(?UNITS_MODULE,[set,public,named_table]),
     io:format("Staring units~n",[]),
-    R=start_units(10000,G),
+    R=start_units(5,G),
     io:format("Reslt: ~p~n",[R]).
 
 
@@ -39,9 +38,9 @@ test()->
     U = get_unit(1),
 %    U ! {set_input,1,{1,0.52}},
 %    U ! {set_input,1,{2,1.2}},
-    U ! {set_input,1,0.3},
-    U ! {set_input,1,0.4},
-
+    U ! {stim,{1,0.3}},
+    U ! {stim,{2,0.4}},
+    U ! status,
     U.
     
     
