@@ -11,6 +11,9 @@
 	  out_func/1
 	 ]).
 
+%
+% 
+%
 -record (uf,
 	 {
 	   id,
@@ -155,6 +158,7 @@ run(R) when is_record(R,uf) ->
 	    io:format("Hello World~n"),
 	    run(R);
 	{stim,Input,Value} ->
+
 	    io:format("Stim detected~n"),
 	    run(stim(R,Input,Value))
     end;
