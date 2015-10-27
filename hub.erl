@@ -13,17 +13,31 @@
 	  get_unit/1,
 	  test/0,
 	  vector_to_index/1,
-	  index_to_vector/1
+	  index_to_vector/1,
+	  get_random_vector/1,
+	  pow/2
 	]).  
 
 start_units(0,G) ->
     G;
 start_units(N,G) ->
-    Pid=unit:start(N),
-    ets:insert(G,{N,Pid}),
-    start_units(N-1,G).
+    G.
 
-  
+index_to_vector(1,I)->
+    [I];
+index_to_vector(P,I)->
+    io:format("P: ~p I: ~p~n",[P,I]),
+    D = I div P,
+    R = I rem P,
+    lists:append( index_to_vector(P div ?NNN_EXTEND,R) , [D]).
+    
+index_to_vector(I)->
+    P=pow(?NNN_EXTEND,?NNN_DIMENSION-1),
+    index_to_vector(P,I).
+
+    
+    
+ 
 run() ->
     G=ets:new(?UNITS_MODULE,[set,public,named_table]),
     io:format("Staring units~n",[]),
@@ -37,15 +51,31 @@ get_unit(N) ->
     [{_,Unit}]=ets:lookup(?UNITS_MODULE,N),
     Unit.
 
-vector_to_index([V])->
-    V;
-vector_to_index([H|T]) ->
-    vector_to_index(T)+H.
+vector_to_index([T],D)->
+    T*D;
+vector_to_index([H|T],D) ->
+    vector_to_index(T,D*?NNN_EXTEND)+H*D.
 
-index_to_vector(I)->
-    ok.
+vector_to_index([H|T])->
+    vector_to_index([H|T],1).
+
+pow(_X,0)->
+    1;
+pow(X,Y) when Y > 0->
+    X*pow(X,Y-1).
 
 
+
+get_random_vector(0,Max) ->
+    [];
+get_random_vector(N,Max) ->
+    [trunc(rand:uniform()*Max*2-Max)|get_random_vector(N-1,Max)].
+
+
+get_random_vector(Max) ->
+    get_random_vector(?NNN_DIMENSION,Max). 
+
+    
 
 
 
